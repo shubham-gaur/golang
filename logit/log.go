@@ -39,6 +39,10 @@ var (
 	critical = Red
 )
 
+var (
+	appName *string
+)
+
 func getFrame(skipFrames int) runtime.Frame {
 	// We need the frame at index skipFrames+2, since we never want runtime.Callers and getFrame
 	targetFrameIndex := skipFrames + 2
@@ -61,12 +65,17 @@ func getFrame(skipFrames int) runtime.Frame {
 	return frame
 }
 
-func init() {
-	Info = log.New(os.Stdout, info("🔵 INFO | "), log.Lmsgprefix)
-	Warn = log.New(os.Stdout, warn("🟠 WARN | "), log.Lmsgprefix)
-	Err = log.New(os.Stderr, err("❌ ERR  | "), log.Lmsgprefix)
-	Debug = log.New(os.Stdout, debug("🟣 DEBUG| "), log.Ldate|log.Ltime|log.Lshortfile)
-	Critical = log.New(os.Stdout, critical("🔴 CRIT | "), log.Ldate|log.Ltime|log.Llongfile)
+func Init(name ...string) {
+	if len(name) > 0 {
+		appName = &name[0]
+	} else {
+		appName = nil
+	}
+	Info = log.New(os.Stdout, getLogType("info"), log.Lmsgprefix)
+	Warn = log.New(os.Stdout, getLogType("warn"), log.Lmsgprefix)
+	Err = log.New(os.Stderr, getLogType("err"), log.Lmsgprefix)
+	Debug = log.New(os.Stdout, getLogType("debug"), log.Ldate|log.Ltime|log.Lshortfile)
+	Critical = log.New(os.Stdout, getLogType("critical"), log.Ldate|log.Ltime|log.Llongfile)
 }
 
 func Color(colorString string) func(...interface{}) string {
@@ -93,6 +102,41 @@ func GetCurrentFunctionName() string {
 
 func GetCallerFunctionName() string {
 	return getFrame(2).Function
+}
+
+func getLogType(logType string) string {
+	switch logType {
+	case "warn":
+		if appName != nil {
+			return warn("🟠 " + *appName + " | " + "WARN | ")
+		} else {
+			return warn("🟠 WARN | ")
+		}
+	case "err":
+		if appName != nil {
+			return err("❌ " + *appName + " | " + "ERR  | ")
+		} else {
+			return err("❌ ERR  | ")
+		}
+	case "debug":
+		if appName != nil {
+			return debug("🟣 " + *appName + " | " + "DBUG | ")
+		} else {
+			return debug("🟣 DBUG | ")
+		}
+	case "critical":
+		if appName != nil {
+			return critical("🔴 " + *appName + " | " + "CRIT | ")
+		} else {
+			return critical("🔴 CRIT | ")
+		}
+	default:
+		if appName != nil {
+			return info("🔵 " + *appName + " | " + "INFO | ")
+		} else {
+			return info("🔵 INFO | ")
+		}
+	}
 }
 
 /* Add support to add log to file
